@@ -212,7 +212,16 @@ class Parameters(object):
         closure_refs = {}
         destroy_refs = {}
         array_refs = {}
-        for tag_index, tag in enumerate(params_tag.findall(TAG_PARAMETER)):
+
+        instance_param = None
+        instance_param_tag = tag.find(TAG_INSTANCE_PARAMETER)
+        if instance_param_tag is not None:
+            instance_param = parse_tag_value(type_registry, instance_param_tag)
+
+        params_tags = params_tag.findall(TAG_PARAMETER)
+
+        # First collect the paramater indices that are referenced from another parameter
+        for tag_index, tag in enumerate(params_tags):
             closure = tag.get(ATTR_CLOSURE)
             if closure is not None:
                 closure_refs[int(closure)] = tag_index
@@ -226,41 +235,39 @@ class Parameters(object):
                     array_refs[int(length)] = tag_index
 
         params = []
-        instance_param = None
-        real_tag_index = 0
 
-        for tag in params_tag:
-            if tag.tag == TAG_INSTANCE_PARAMETER:
-                assert real_tag_index == 0
-                instance_param = parse_tag_value(type_registry, tag)
+        # Next collect parameters that are not referenced by other parameters
+        for index, tag in enumerate(params_tags):
+            if closure_refs.get(index) is None and \
+                    destroy_refs.get(index) is None and \
+                    array_refs.get(index) is None:
+                params.append(parse_tag_value(type_registry, tag))
             else:
-                if closure_refs.get(real_tag_index) is not None:
-                    name = tag.get(ATTR_NAME)
-                    closure_index = closure_refs.get(real_tag_index)
-                    closure = None
-                    if closure_index == real_tag_index - 1:
-                        closure = params[-1]
-                    else:
-                        assert closure_index == real_tag_index
-                    params.append(JObjectWrapperType(name, closure, transfer_ownership=True))
-                elif destroy_refs.get(real_tag_index) is not None:
-                    name = tag.get(ATTR_NAME)
-                    destroy_index = destroy_refs.get(real_tag_index)
-                    assert destroy_index == real_tag_index - 2
-                    params[-2].scope == 'notified'
-                    params.append(JDestroyType(name))
-                elif array_refs.get(real_tag_index) is not None:
-                    array_index = array_refs.get(real_tag_index)
-                    assert array_index == real_tag_index - 1
-                    array = params[-1]
-                    value = parse_tag_value(type_registry, tag)
-                    value.is_length_param = True
-                    value.array = array
-                    array.length = value
-                    params.append(value)
-                else:
-                    params.append(parse_tag_value(type_registry, tag))
-                real_tag_index += 1
+                # Add a placeholder so that array indices represent parameter indices correctly
+                params.append(None)
+
+        # Finally collect parameters that are referenced by other parameters
+        for index, tag in enumerate(params_tags):
+            if closure_refs.get(index) is not None:
+                name = tag.get(ATTR_NAME)
+                closure_index = closure_refs.get(index)
+                closure = None
+                if closure_index != index:
+                    closure = params[index]
+                params[index] = JObjectWrapperType(name, closure, transfer_ownership=True)
+            elif destroy_refs.get(index) is not None:
+                name = tag.get(ATTR_NAME)
+                destroy_index = destroy_refs.get(index)
+                params[destroy_index].scope == 'notified'
+                params[index] = JDestroyType(name)
+            elif array_refs.get(index) is not None:
+                array_index = array_refs.get(index)
+                array = params[array_index]
+                value = parse_tag_value(type_registry, tag)
+                value.is_length_param = True
+                value.array = array
+                array.length = value
+                params[index] = value
 
         return cls(return_value, instance_param, params)
 
