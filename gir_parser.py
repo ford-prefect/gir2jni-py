@@ -85,6 +85,7 @@ ATTR_GLIB_NICK = GLIB_NS + 'nick'
 ATTR_GLIB_TYPE_NAME = GLIB_NS + 'type-name'
 ATTR_GLIB_GET_TYPE = GLIB_NS + 'get-type'
 ATTR_GLIB_TYPE_STRUCT = GLIB_NS + 'type-struct'
+ATTR_GLIB_FUNDAMENTAL = GLIB_NS + 'fundamental'
 
 
 def printable(cls):
@@ -578,6 +579,9 @@ class GirParser(object):
                 if MetaType == EnumMetaType or MetaType == BitfieldMetaType:
                     if tag.get(ATTR_GLIB_TYPE_NAME) is not None:
                         continue
+
+                if tag.get(ATTR_GLIB_FUNDAMENTAL) is not None:
+                     continue
 
                 types.append(MetaType(
                     gir_type=gir_type,
