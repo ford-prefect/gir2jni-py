@@ -44,6 +44,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gir', dest = 'gir', metavar = 'FILE', help = '.gir file')
 parser.add_argument('--c-out', dest = 'c_path', metavar = 'DIR', help = '.c output file')
 parser.add_argument('--j-out', dest = 'j_dir', metavar = 'DIR', help = '.java base output directory')
+parser.add_argument('--headers', nargs = '+', dest = 'headers', metavar = 'HEADERS', help = '.h files to include')
 parser.add_argument('--package-root', dest = 'package_root', metavar = 'PACKAGE_ROOT',
                     help = 'the Java package root for generated code')
 parser.add_argument('--log-tag', dest = 'log_tag', metavar = 'LOG_TAG',
@@ -109,30 +110,6 @@ from standard_types import ObjectMetaType
 
 HEADERS = [
     'android/native_window_jni.h',
-    'owr.h',
-    'owr_audio_payload.h',
-    'owr_audio_renderer.h',
-    'owr_bus.h',
-    'owr_candidate.h',
-    'owr_data_channel.h',
-    'owr_data_session.h',
-    'owr_image_renderer.h',
-    'owr_image_server.h',
-    'owr_local.h',
-    'owr_local_media_source.h',
-    'owr_media_renderer.h',
-    'owr_media_session.h',
-    'owr_media_source.h',
-    'owr_message_origin.h',
-    'owr_payload.h',
-    'owr_remote_media_source.h',
-    'owr_session.h',
-    'owr_transport_agent.h',
-    'owr_types.h',
-    'owr_video_payload.h',
-    'owr_video_renderer.h',
-    'owr_window_registry.h',
-    'owr_crypto_utils.h',
 ]
 
 class WindowHandleType(ObjectMetaType(
@@ -202,7 +179,7 @@ def main(argv = None):
         for name, source in classes.items():
             write_file(source, java_namespace_dir, name + '.java')
 
-    source = c_generator.gen_source(namespaces, HEADERS)
+    source = c_generator.gen_source(namespaces, HEADERS + args.headers)
 
     write_file(source, args.c_dir, args.c_file)
     print('--------  END  ---------')
