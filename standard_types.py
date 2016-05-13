@@ -402,7 +402,7 @@ class VoidType(GirMetaType()):
 
 
 class GParamSpecType(GirMetaType()):
-    gir_type = None
+    gir_type = 'GObject.ParamSpec'
     java_type = None
     jni_type = None
     c_type = 'GParamSpec*'
