@@ -23,9 +23,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 # OF SUCH DAMAGE.
 
-PACKAGE_ROOT = 'com.ericsson.research'
+PACKAGE_ROOT = None
 
-LOG_TAG = 'OpenWebRTC'
+LOG_TAG = None
 
 IGNORED_ELEMENTS = [
     # ".//*[@name='name_of_symbol_to_ignore_here']",

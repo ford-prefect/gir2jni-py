@@ -31,15 +31,6 @@ import copy
 import argparse
 import xml.etree.ElementTree as ET
 import config
-import c_generator
-import java_generator
-from c_generator import C
-from gir_parser import GirParser
-from type_registry import TypeRegistry
-from type_registry import TypeTransform
-from type_registry import GirMetaType
-from standard_types import standard_types
-from standard_types import ObjectMetaType
 
  ######   #######  ##    ##  ######  ########
 ##    ## ##     ## ###   ## ##    ##    ##
@@ -53,6 +44,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gir', dest = 'gir', metavar = 'FILE', help = '.gir file')
 parser.add_argument('--c-out', dest = 'c_path', metavar = 'DIR', help = '.c output file')
 parser.add_argument('--j-out', dest = 'j_dir', metavar = 'DIR', help = '.java base output directory')
+parser.add_argument('--package-root', dest = 'package_root', metavar = 'PACKAGE_ROOT',
+                    help = 'the Java package root for generated code')
+parser.add_argument('--log-tag', dest = 'log_tag', metavar = 'LOG_TAG',
+                    help = 'the Android log tag to use in debug output')
 args = parser.parse_args()
 
 if args.gir:
@@ -67,6 +62,16 @@ if args.j_dir:
     print 'saving generated Java source in "{}"'.format(args.j_dir)
 else:
     print 'missing Java output directory (--j-out)'
+if args.package_root:
+    print 'package root is: "{}"'.format(args.package_root)
+    config.PACKAGE_ROOT = args.package_root
+else:
+    print 'missing package root (--package-root)'
+if args.log_tag:
+    print 'log tag is: "{}"'.format(args.log_tag)
+    config.LOG_TAG = args.log_tag
+else:
+    print 'missing log tag (--log-tag)'
 
 args.c_dir, args.c_file = os.path.split(args.c_path)
 if not args.c_file:
@@ -88,6 +93,18 @@ def write_file(content, path, filename):
     outfile = open(path + os.sep + filename, 'w')
     outfile.write(content)
     outfile.close()
+
+
+# These are imported after argument parsing so we can set package root and log tag
+import c_generator
+import java_generator
+from c_generator import C
+from gir_parser import GirParser
+from type_registry import TypeRegistry
+from type_registry import TypeTransform
+from type_registry import GirMetaType
+from standard_types import standard_types
+from standard_types import ObjectMetaType
 
 
 HEADERS = [
