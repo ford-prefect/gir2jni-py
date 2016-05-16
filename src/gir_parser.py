@@ -27,6 +27,7 @@ import itertools
 from standard_types import VoidType, IntType, LongPtrType, GParamSpecType, JObjectWrapperType
 from standard_types import ClassCallbackMetaType, GObjectMetaType, CallbackMetaType
 from standard_types import EnumMetaType, BitfieldMetaType, GWeakRefType, JDestroyType
+from standard_types import standard_types
 from copy import copy
 
 NS = '{http://www.gtk.org/introspection/core/1.0}'
@@ -106,6 +107,20 @@ def title_case(st):
     return ''.join(c for c in st.title() if c.isalpha())
 
 
+def namespacify(namespace, name):
+    # If the tag namespaced, don't do anything
+    if '.' in name:
+        return name
+
+    # For standard types as well, don't touch the name
+    for typ in standard_types:
+        if typ.gir_type == name:
+            return name
+
+    # If a namespace is specified, just return 'namespace.name'
+    return name if namespace is None else (namespace + '.' + name)
+
+
 def parse_doc(tag):
     text = tag.findtext(TAG_DOC)
     if text:
@@ -118,17 +133,20 @@ def camel_case(st):
     return st[0].lower() + st[1:]
 
 
-def parse_tag_value(type_registry, tag, name=None):
+def parse_tag_value(type_registry, tag, name=None, namespace=None):
     def lookup_type(tag):
         if tag.tag == TAG_ARRAY:
             inner_tag = tag.find(TAG_TYPE)
             gir_type = inner_tag.get(ATTR_NAME)
             c_type = inner_tag.get(ATTR_C_TYPE)
-            return type_registry.lookup(gir_type, c_type, is_array=True)
+            is_array = True
         else:
             gir_type = tag.get(ATTR_NAME)
             c_type = tag.get(ATTR_C_TYPE)
-            return type_registry.lookup(gir_type, c_type)
+            is_array = False
+
+        gir_type = namespacify(namespace, gir_type)
+        return type_registry.lookup(gir_type, c_type, is_array)
 
     transfer = tag.get(ATTR_TRANSFER_ONWERSHIP)
     type_tag = tag.find(TAG_TYPE)
@@ -202,8 +220,8 @@ class Parameters(object):
         return iter(self.all_params)
 
     @classmethod
-    def from_tag(cls, type_registry, tag):
-        return_value = parse_tag_value(type_registry, tag.find(TAG_RETURN_VALUE), 'result')
+    def from_tag(cls, type_registry, tag, namespace=None):
+        return_value = parse_tag_value(type_registry, tag.find(TAG_RETURN_VALUE), 'result', namespace=namespace)
 
         params_tag = tag.find(TAG_PARAMETERS)
         if params_tag is None:
@@ -216,7 +234,7 @@ class Parameters(object):
         instance_param = None
         instance_param_tag = tag.find(TAG_INSTANCE_PARAMETER)
         if instance_param_tag is not None:
-            instance_param = parse_tag_value(type_registry, instance_param_tag)
+            instance_param = parse_tag_value(type_registry, instance_param_tag, namespace=namespace)
 
         params_tags = params_tag.findall(TAG_PARAMETER)
 
@@ -241,7 +259,7 @@ class Parameters(object):
             if closure_refs.get(index) is None and \
                     destroy_refs.get(index) is None and \
                     array_refs.get(index) is None:
-                params.append(parse_tag_value(type_registry, tag))
+                params.append(parse_tag_value(type_registry, tag, namespace=namespace))
             else:
                 # Add a placeholder so that array indices represent parameter indices correctly
                 params.append(None)
@@ -263,7 +281,7 @@ class Parameters(object):
             elif array_refs.get(index) is not None:
                 array_index = array_refs.get(index)
                 array = params[array_index]
-                value = parse_tag_value(type_registry, tag)
+                value = parse_tag_value(type_registry, tag, namespace=namespace)
                 value.is_length_param = True
                 value.array = array
                 array.length = value
@@ -309,12 +327,12 @@ class Property(object):
             )
 
     @classmethod
-    def from_tag(cls, type_registry, class_value, tag):
+    def from_tag(cls, type_registry, class_value, tag, namespace=None):
         name = tag.get(ATTR_NAME)
 
         return cls(
             name=name,
-            value=parse_tag_value(type_registry, tag, camel_case(name)),
+            value=parse_tag_value(type_registry, tag, camel_case(name), namespace),
             class_value=class_value,
             readable=str(tag.get(ATTR_READABLE)) != '0',
             writable=str(tag.get(ATTR_WRITABLE)) == '1' and str(tag.get(ATTR_CONSTRUCT_ONLY)) != '1',
@@ -336,12 +354,12 @@ class BaseFunction(object):
         return '(' + arg_signature + ')' + self.params.return_value.java_signature
 
     @classmethod
-    def from_tag(cls, type_registry, tag):
+    def from_tag(cls, type_registry, tag, namespace=None):
         return cls(
             doc=parse_doc(tag),
             name=camel_case(tag.get(ATTR_NAME)),
             c_name=tag.get(ATTR_C_IDENTIFIER),
-            params=Parameters.from_tag(type_registry, tag),
+            params=Parameters.from_tag(type_registry, tag, namespace=namespace),
         )
 
 
@@ -367,14 +385,14 @@ class Callback(BaseFunction):
         self.value = value
 
     @classmethod
-    def from_tag(cls, type_registry, tag):
+    def from_tag(cls, type_registry, tag, namespace=None):
         callback_name = tag.get(ATTR_NAME)
-        callback_value = type_registry.lookup(callback_name, None)('listener', False)
+        callback_value = type_registry.lookup(namespacify(namespace, callback_name), None)('listener', False)
         return cls(
             doc=parse_doc(tag),
             name='on' + callback_name,
             value=callback_value,
-            params=Parameters.from_tag(type_registry, tag),
+            params=Parameters.from_tag(type_registry, tag, namespace=namespace),
         )
 
 
@@ -413,10 +431,10 @@ class Signal(BaseFunction):
         self.value = listener_value
 
     @classmethod
-    def from_tag(cls, type_registry, class_value, tag):
+    def from_tag(cls, type_registry, class_value, tag, namespace=None):
         signal_name = tag.get(ATTR_NAME)
 
-        parsed_params = Parameters.from_tag(type_registry, tag)
+        parsed_params = Parameters.from_tag(type_registry, tag, namespace=namespace)
         return_value = parsed_params.return_value
         params = parsed_params.all_params if parsed_params is not None else []
         params = [return_value, class_value] + [params + [JObjectWrapperType('listener', None, transfer_ownership=False)]]
@@ -437,12 +455,12 @@ class Class(object):
         self.__dict__.update(**kwargs)
 
     @classmethod
-    def from_tag(cls, type_registry, tag, interfaces=None):
+    def from_tag(cls, type_registry, tag, interfaces=None, namespace=None):
         parent = tag.get(ATTR_PARENT)
         if parent == 'GObject.Object':
             parent = None
 
-        name = tag.get(ATTR_NAME)
+        name = namespacify(namespace, tag.get(ATTR_NAME))
         value = type_registry.lookup(name, None)('self')
 
         return cls(
@@ -454,12 +472,12 @@ class Class(object):
             glib_type_name=tag.get(ATTR_GLIB_TYPE_NAME),
             glib_get_type=tag.get(ATTR_GLIB_GET_TYPE),
             glib_type_struct=tag.get(ATTR_GLIB_TYPE_STRUCT),
-            constructors=[Constructor.from_tag(type_registry, t) for t in tag.findall(TAG_CONSTRUCTOR) if t.get(ATTR_INTROSPECTABLE) != '0'],
-            properties=[Property.from_tag(type_registry, value, t) for t in tag.findall(TAG_PROPERTY) if t.get(ATTR_INTROSPECTABLE) != '0'],
-            methods=[Method.from_tag(type_registry, t) for t in tag.findall(TAG_METHOD) if t.get(ATTR_INTROSPECTABLE) != '0'],
-            functions=[Function.from_tag(type_registry, t) for t in tag.findall(TAG_FUNCTION) if t.get(ATTR_INTROSPECTABLE) != '0'],
-            signals=[Signal.from_tag(type_registry, value, t) for t in tag.findall(TAG_SIGNAL) if t.get(ATTR_INTROSPECTABLE) != '0'],
-            interfaces=[interfaces[t.get(ATTR_NAME)] for t in tag.findall(TAG_IMPLEMENTS)],
+            constructors=[Constructor.from_tag(type_registry, t, namespace=namespace) for t in tag.findall(TAG_CONSTRUCTOR) if t.get(ATTR_INTROSPECTABLE) != '0'],
+            properties=[Property.from_tag(type_registry, value, t, namespace=namespace) for t in tag.findall(TAG_PROPERTY) if t.get(ATTR_INTROSPECTABLE) != '0'],
+            methods=[Method.from_tag(type_registry, t, namespace=namespace) for t in tag.findall(TAG_METHOD) if t.get(ATTR_INTROSPECTABLE) != '0'],
+            functions=[Function.from_tag(type_registry, t, namespace=namespace) for t in tag.findall(TAG_FUNCTION) if t.get(ATTR_INTROSPECTABLE) != '0'],
+            signals=[Signal.from_tag(type_registry, value, t, namespace=namespace) for t in tag.findall(TAG_SIGNAL) if t.get(ATTR_INTROSPECTABLE) != '0'],
+            interfaces=[interfaces[namespacify(namespace, t.get(ATTR_NAME))] for t in tag.findall(TAG_IMPLEMENTS)],
         )
 
 
@@ -504,9 +522,9 @@ class Enum(object):
         self.has_description = has_description
 
     @classmethod
-    def from_tag(cls, type_registry, tag, glib_tag=None):
+    def from_tag(cls, type_registry, tag, glib_tag=None, namespace=None):
         members = tag.findall(TAG_MEMBER)
-        name = tag.get(ATTR_NAME)
+        name = namespacify(namespace, tag.get(ATTR_NAME))
         c_name = tag.get(ATTR_C_TYPE)
         type = type_registry.lookup(name, c_name);
         if glib_tag is not None:
@@ -547,18 +565,19 @@ class Namespace(object):
 
             return map(glib_from_c, c_enums)
 
-        interfaces = [Class.from_tag(type_registry, t) for t in tag.findall(TAG_INTERFACE)]
-        interface_map = {interface.name: interface for interface in interfaces}
-
         self.name = tag.get(ATTR_NAME)
         self.symbol_prefix = tag.get(ATTR_C_SYMBOL_PREFIXES)
         self.identifier_prefix = tag.get(ATTR_C_IDENTIFIER_PREFIXES)
         self.shared_library = tag.get(ATTR_SHARED_LIBRARY)
+
+        interfaces = [Class.from_tag(type_registry, t, namespace=self.name) for t in tag.findall(TAG_INTERFACE)]
+        interface_map = {interface.name: interface for interface in interfaces}
+
         self.interfaces = interfaces
-        self.enums = [Enum.from_tag(type_registry, *tags) for tags in find_enum_pairs()]
-        self.callbacks = [Callback.from_tag(type_registry, t) for t in tag.findall(TAG_CALLBACK)]
-        self.classes = [Class.from_tag(type_registry, t, interface_map) for t in tag.findall(TAG_CLASS)]
-        self.functions = [Function.from_tag(type_registry, t) for t in tag.findall(TAG_FUNCTION)]
+        self.enums = [Enum.from_tag(type_registry, *tags, namespace=self.name) for tags in find_enum_pairs()]
+        self.callbacks = [Callback.from_tag(type_registry, t, namespace=self.name) for t in tag.findall(TAG_CALLBACK)]
+        self.classes = [Class.from_tag(type_registry, t, interface_map, namespace=self.name) for t in tag.findall(TAG_CLASS)]
+        self.functions = [Function.from_tag(type_registry, t, namespace=self.name) for t in tag.findall(TAG_FUNCTION)]
 
 
 class GirParser(object):
@@ -569,6 +588,7 @@ class GirParser(object):
         types = []
 
         for namespace in self.xml_root.findall(TAG_NAMESPACE):
+            namespace_name = namespace.get(ATTR_NAME);
             prefix = namespace.get(ATTR_C_SYMBOL_PREFIXES)
             tag_types = {
                 TAG_CLASS: GObjectMetaType,
@@ -579,7 +599,7 @@ class GirParser(object):
             }
             tags = sum(map(namespace.findall, tag_types.keys()), [])
             for tag in tags:
-                gir_type = tag.get(ATTR_NAME)
+                gir_type = namespacify(namespace_name, tag.get(ATTR_NAME))
                 c_type = tag.get(ATTR_C_TYPE)
                 MetaType = tag_types[tag.tag]
 

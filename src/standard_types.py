@@ -647,7 +647,7 @@ class StringMetaType(ObjectMetaType):
 
 class GValueType(ObjectMetaType(
         gir_type='GObject.Value',
-        java_type='Object',
+        java_type='GObject.Object',
         c_type='GValue*',
         package='java.lang',
     )):
