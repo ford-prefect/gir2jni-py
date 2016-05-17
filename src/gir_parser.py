@@ -87,6 +87,7 @@ ATTR_GLIB_TYPE_NAME = GLIB_NS + 'type-name'
 ATTR_GLIB_GET_TYPE = GLIB_NS + 'get-type'
 ATTR_GLIB_TYPE_STRUCT = GLIB_NS + 'type-struct'
 ATTR_GLIB_FUNDAMENTAL = GLIB_NS + 'fundamental'
+ATTR_GLIB_IS_GTYPE_STRUCT_FOR = GLIB_NS + 'is-gtype-struct-for'
 
 
 def printable(cls):
@@ -608,6 +609,10 @@ class GirParser(object):
                         continue
 
                 if tag.get(ATTR_GLIB_FUNDAMENTAL) is not None:
+                     continue
+
+                # Class structure - skip
+                if tag.get(ATTR_GLIB_IS_GTYPE_STRUCT_FOR) is not None:
                      continue
 
                 types.append(MetaType(
