@@ -369,6 +369,10 @@ class BooleanType(PrimitiveMetaType('boolean', 'jboolean', 'gboolean', 'Z', 'Boo
 class FloatType  (PrimitiveMetaType('float',   'jfloat',   'gfloat',   'F', 'Float')): pass
 class DoubleType (PrimitiveMetaType('double',  'jdouble',  'gdouble',  'D', 'Double')): pass
 
+# These are all typedef'ed
+class GTypeType  (PrimitiveMetaType('long',    'jlong',    'GType',    'J', 'Long')): pass
+class GQuarkType (PrimitiveMetaType('int',     'jint',     'GQuark',   'I', 'Integer')): pass
+
 
 class GWeakRefType(PrimitiveMetaType('long',    'jlong',    'gpointer', 'J', 'Long')):
     def transform_to_jni(self):
