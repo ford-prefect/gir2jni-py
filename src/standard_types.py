@@ -250,9 +250,9 @@ class PrimitiveMetaType(GirMetaType):
         assert out == False or transfer_ownership == False
         super(PrimitiveMetaType, self).__init__(name, transfer_ownership, allow_none=True)
 
-    def __new__(cls, java_type, jni_type, c_type, java_signature, object_type):
+    def __new__(cls, java_type, jni_type, c_type, java_signature, object_type, gir_type=None):
         new = super(PrimitiveMetaType, cls).__new__(cls)
-        new.gir_type = c_type
+        new.gir_type = gir_type if gir_type is not None else c_type
         new.java_type = java_type
         new.jni_type = jni_type
         new.c_type = c_type
