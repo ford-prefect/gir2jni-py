@@ -576,7 +576,7 @@ class Namespace(object):
         self.interfaces = interfaces
         self.enums = [Enum.from_tag(type_registry, *tags, namespace=self.name) for tags in find_enum_pairs()]
         self.callbacks = [Callback.from_tag(type_registry, t, namespace=self.name) for t in tag.findall(TAG_CALLBACK)]
-        self.classes = [Class.from_tag(type_registry, t, interface_map, namespace=self.name) for t in tag.findall(TAG_CLASS)]
+        self.classes = [Class.from_tag(type_registry, t, interface_map, namespace=self.name) for t in tag.findall(TAG_CLASS) if not type_registry.is_ignored(namespacify(self.name, t.get(ATTR_NAME)))]
         self.functions = [Function.from_tag(type_registry, t, namespace=self.name) for t in tag.findall(TAG_FUNCTION)]
 
 
@@ -628,6 +628,19 @@ class GirParser(object):
                     name = alias[:-1]
                     aliases[alias] = name
         return aliases
+
+    def parse_ignored_types(self):
+        ignored = []
+
+        for namespace in self.xml_root.findall((TAG_NAMESPACE)):
+            namespace_name = namespace.get(ATTR_NAME)
+            for tag in namespace.findall(TAG_CLASS):
+                if tag.get(ATTR_GLIB_FUNDAMENTAL) is not None:
+                     ignored.append(namespacify(namespace_name, tag.get(ATTR_NAME)))
+
+        return ignored
+
+
 
     def parse_full(self, type_registry):
         return [Namespace(type_registry, tag) for tag in self.xml_root.findall(TAG_NAMESPACE)]

@@ -165,6 +165,7 @@ def main(argv = None):
         gir_parser = GirParser(xml_root)
         type_registry.register(gir_parser.parse_types())
         type_registry.register_enum_aliases(gir_parser.parse_enum_aliases())
+        type_registry.register_ignored_types(gir_parser.parse_ignored_types())
 
     namespaces = gir_parser.parse_full(type_registry)
 

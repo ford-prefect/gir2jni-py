@@ -34,6 +34,7 @@ class TypeRegistry:
         self.array_by_gir_type = defaultdict(set)
         self.array_by_c_type = defaultdict(set)
         self.enum_aliases = {}
+        self.ignored_types = []
 
     def _register(self, typ):
         self.types.append(typ)
@@ -56,6 +57,15 @@ class TypeRegistry:
 
     def register_enum_aliases(self, aliases):
         self.enum_aliases.update(aliases)
+
+    def register_ignored_types(self, ignored):
+        try:
+            [self.ignored_types.append(i) for i in ignored]
+        except TypeError:
+            self.ignored_types.append(ignored)
+
+    def is_ignored(self, typ):
+        return typ in self.ignored_types
 
     def lookup(self, gir_type = None, c_type = None, is_array=False):
         girs = None;
