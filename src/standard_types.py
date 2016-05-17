@@ -849,6 +849,42 @@ class GListType(ContainerMetaType(
         ])
 
 
+class GSListType(ContainerMetaType(
+        gir_type='GLib.SList',
+        java_type='List',
+        c_type='GSList*',
+    )):
+
+    def __init__(self, *args, **kwargs):
+        super(GSListType, self).__init__(*args, **kwargs)
+        (self.inner_value,) = self.inner_values
+
+    def transform_to_c(self):
+        return TypeTransform([]) # FIXME: not implemented
+
+    def transform_to_jni(self):
+        it = self.c_name + '_it'
+        inner_transforms = super(GSListType, self).transform_to_jni()
+        return TypeTransform([
+            C.Decl(self.jni_type, self.jni_name),
+            C.Decl(self.c_type, it),
+            C.Decl(self.inner_value.c_type, self.inner_value.c_name),
+            inner_transforms.declarations,
+        ],[
+            C.Assign(self.jni_name, C.Env.new('ArrayList')),
+            C.Assign(it, self.c_name),
+            C.While(it,
+                C.Assign(self.inner_value.c_name, it + '->data'),
+                inner_transforms.conversion,
+                C.Env.method(self.jni_name, ('ArrayList', 'add'), self.inner_value.jni_name),
+                C.ExceptionCheck.default(self),
+                C.Env('DeleteLocalRef', self.inner_value.jni_name) if self.inner_value.has_local_ref else [],
+                inner_transforms.cleanup,
+                C.Assign(it, it + '->next'),
+            ),
+        ])
+
+
 class GHashTableType(ContainerMetaType(
         gir_type='GLib.HashTable',
         java_type='HashMap',
@@ -934,6 +970,7 @@ object_array_types = [ObjectArrayMetaType.from_object_type(t) for t in object_ty
 standard_types = primitive_types + primitive_array_types + object_types + object_array_types + [
     VoidType,
     GListType,
+    GSListType,
     GHashTableType,
     GParamSpecType,
     EnumMetaType('GLib.ParamFlags', 'GParamFlags', config.PACKAGE_ROOT),
