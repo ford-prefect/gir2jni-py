@@ -687,6 +687,9 @@ class GValueType(ObjectMetaType(
         package='java.lang',
     )):
 
+    def transform_to_c(self):
+        return TypeTransform([]) # FIXME: not implemented
+
     def transform_to_jni(self):
         return TypeTransform([
             C.Decl(self.jni_type, self.jni_name),
@@ -783,6 +786,9 @@ class GListType(ContainerMetaType(
     def __init__(self, *args, **kwargs):
         super(GListType, self).__init__(*args, **kwargs)
         (self.inner_value,) = self.inner_values
+
+    def transform_to_c(self):
+        return TypeTransform([]) # FIXME: not implemented
 
     def transform_to_jni(self):
         it = self.c_name + '_it'
