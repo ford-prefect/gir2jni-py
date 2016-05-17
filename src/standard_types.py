@@ -355,8 +355,8 @@ class Int16Type  (PrimitiveMetaType('short',   'jshort',   'gint16',   'S', 'Sho
 class Uint16Type (PrimitiveMetaType('short',   'jshort',   'guint16',  'S', 'Short')): pass
 class IntType    (PrimitiveMetaType('int',     'jint',     'gint',     'I', 'Integer')): pass
 class UintType   (PrimitiveMetaType('int',     'jint',     'guint',    'I', 'Integer')): pass
-class Uint32Type (PrimitiveMetaType('int',     'jint',     'gint32',   'I', 'Integer')): pass
-class Int32Type  (PrimitiveMetaType('int',     'jint',     'guint32',  'I', 'Integer')): pass
+class Uint32Type (PrimitiveMetaType('int',     'jint',     'guint32',  'I', 'Integer')): pass
+class Int32Type  (PrimitiveMetaType('int',     'jint',     'gint32',   'I', 'Integer')): pass
 class LongType   (PrimitiveMetaType('long',    'jlong',    'glong',    'J', 'Long')): pass
 class UlongType  (PrimitiveMetaType('long',    'jlong',    'gulong',   'J', 'Long')): pass
 class LongPtrType(PrimitiveMetaType('long',    'jlong',    'gpointer', 'J', 'Long')): pass
