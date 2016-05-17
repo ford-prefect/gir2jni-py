@@ -246,8 +246,8 @@ C.Helper.add_helper('gvalue_to_jobject',
 class PrimitiveMetaType(GirMetaType):
     default_value = '0'
 
-    def __init__(self, name, transfer_ownership=False, allow_none='Ignored'):
-        assert transfer_ownership == False
+    def __init__(self, name, transfer_ownership=False, allow_none='Ignored', out=False):
+        assert out == False or transfer_ownership == False
         super(PrimitiveMetaType, self).__init__(name, transfer_ownership, allow_none=True)
 
     def __new__(cls, java_type, jni_type, c_type, java_signature, object_type):
