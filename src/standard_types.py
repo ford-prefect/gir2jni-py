@@ -872,6 +872,11 @@ primitive_types = [
     BooleanType,
     FloatType,
     DoubleType,
+    GTypeType,
+    GQuarkType,
+    GstClockTimeType,
+    GstClockTimeDiffType,
+    GstElementFactoryListTypeType,
 ]
 
 primitive_array_types = [PrimitiveArrayMetaType.from_primitive_type(t) for t in primitive_types]
@@ -883,6 +888,9 @@ standard_types = primitive_types + primitive_array_types + [
     StringMetaType('const gchar*'),
     GListType,
     GHashTableType,
+    GParamSpecType,
+    EnumMetaType('GLib.ParamFlags', 'GParamFlags', config.PACKAGE_ROOT),
+    GObjectMetaType('GObject.Object', 'GObject*', config.PACKAGE_ROOT),
     OpaqueStructMetaType('GLib.Error', 'GError*', config.PACKAGE_ROOT),
     OpaqueStructMetaType('GLib.MainContext', 'GMainContext*', config.PACKAGE_ROOT),
     OpaqueStructMetaType('GLib.OptionGroup', 'GOptionGroup*', config.PACKAGE_ROOT),
