@@ -41,7 +41,7 @@ import config
  ######   #######  ##    ##  ######     ##
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--gir', dest = 'gir', metavar = 'FILE', help = '.gir file')
+parser.add_argument('--gir', nargs = '+', dest = 'gir', metavar = 'FILE', help = '.gir file')
 parser.add_argument('--c-out', dest = 'c_path', metavar = 'DIR', help = '.c output file')
 parser.add_argument('--j-out', dest = 'j_dir', metavar = 'DIR', help = '.java base output directory')
 parser.add_argument('--headers', nargs = '+', dest = 'headers', metavar = 'HEADERS', help = '.h files to include')
@@ -52,7 +52,7 @@ parser.add_argument('--log-tag', dest = 'log_tag', metavar = 'LOG_TAG',
 args = parser.parse_args()
 
 if args.gir:
-    print 'reading from gir file "{}"'.format(args.gir)
+    print 'reading from gir files "{}"'.format(args.gir)
 else:
     print 'missing gir input file (--gir)'
 if args.c_path:
@@ -158,13 +158,13 @@ def main(argv = None):
     type_registry = TypeRegistry()
     type_registry.register(standard_types)
     type_registry.register(WindowHandleType)
-    type_registry.register(GMainContextDummy)
 
-    xml_root = ET.parse(args.gir).getroot()
-    remove_ignored_elements(xml_root)
-    gir_parser = GirParser(xml_root)
-    type_registry.register(gir_parser.parse_types())
-    type_registry.register_enum_aliases(gir_parser.parse_enum_aliases())
+    for gir in args.gir:
+        xml_root = ET.parse(gir).getroot()
+        remove_ignored_elements(xml_root)
+        gir_parser = GirParser(xml_root)
+        type_registry.register(gir_parser.parse_types())
+        type_registry.register_enum_aliases(gir_parser.parse_enum_aliases())
 
     namespaces = gir_parser.parse_full(type_registry)
 
