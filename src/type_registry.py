@@ -88,7 +88,7 @@ class TypeRegistry:
             return self.lookup(enum_alias, c_type)
         if len(girs):
             return max(iter(girs))
-        raise LookupError("type lookup failed (gir_type=%s, c_type=%s)" % (gir_type, c_type))
+        raise LookupError("type lookup failed (gir_type=%s, c_type=%s, is_array=%s)" % (gir_type, c_type, is_array))
 
 
 class TypeTransform(object):
