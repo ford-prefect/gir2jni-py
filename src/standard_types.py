@@ -433,6 +433,37 @@ class ObjectMetaType(GirMetaType):
         return new
 
 
+class OpaqueStructMetaType(GirMetaType):
+    default_value = 'NULL'
+
+    # Pass around a native pointer as a long
+    def __init__(self, name, transfer_ownership=False, allow_none='Ignored'):
+        super(OpaqueStructMetaType, self).__init__(name, transfer_ownership, allow_none=True)
+
+    def __new__(cls, gir_type, c_type, prefix, copy_func=None, free_func=None):
+        new = super(OpaqueStructMetaType, cls).__new__(cls)
+
+        new.java_type='long'
+        new.java_full_class='java.lang.Long'
+        new.jni_type='jlong'
+        new.c_type=c_type
+        new.java_signature='J'
+        new.object_type='Long'
+        new.gir_type = gir_type
+        new.copy_func = copy_func
+        new.free_func = free_func
+        new.package = config.PACKAGE_ROOT + '.' + prefix if prefix is not None else config.PACKAGE_ROOT
+
+        return new
+
+    # FIXME: Not implemented
+    def transform_to_c(self):
+        return TypeTransform([]) # FIXME: not implemented
+
+    # FIXME: Not implemented
+    def transform_to_jni(self):
+        return TypeTransform([]) # FIXME: not implemented
+
 class JObjectWrapperType(ObjectMetaType(
         gir_type='gpointer',
         java_type=None,
@@ -848,4 +879,10 @@ standard_types = primitive_types + primitive_array_types + [
     StringMetaType('const gchar*'),
     GListType,
     GHashTableType,
+    OpaqueStructMetaType('GLib.Error', 'GError*', config.PACKAGE_ROOT),
+    OpaqueStructMetaType('GLib.MainContext', 'GMainContext*', config.PACKAGE_ROOT),
+    OpaqueStructMetaType('GLib.OptionGroup', 'GOptionGroup*', config.PACKAGE_ROOT),
+    OpaqueStructMetaType('GLib.RecMutex', 'GRecMutex*', config.PACKAGE_ROOT),
+    OpaqueStructMetaType('GLib.Source', 'GSource*', config.PACKAGE_ROOT),
+    OpaqueStructMetaType('GLib.Thread', 'GThread*', config.PACKAGE_ROOT),
 ]

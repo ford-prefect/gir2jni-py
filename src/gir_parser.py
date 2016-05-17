@@ -1,4 +1,5 @@
 # Copyright (c) 2014-2015, Ericsson AB. All rights reserved.
+#               2016, Arun Raghavan <arun@arunraghavan.net>
 #
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
@@ -25,7 +26,7 @@ from __future__ import print_function
 import xml.etree.ElementTree as ET
 import itertools
 from standard_types import VoidType, IntType, LongPtrType, GParamSpecType, JObjectWrapperType
-from standard_types import ClassCallbackMetaType, GObjectMetaType, CallbackMetaType
+from standard_types import ClassCallbackMetaType, GObjectMetaType, CallbackMetaType, OpaqueStructMetaType
 from standard_types import EnumMetaType, BitfieldMetaType, GWeakRefType, JDestroyType
 from standard_types import standard_types
 from copy import copy
@@ -597,6 +598,7 @@ class GirParser(object):
                 TAG_CALLBACK: CallbackMetaType,
                 TAG_ENUMERATION: EnumMetaType,
                 TAG_BITFIELD: BitfieldMetaType,
+                TAG_RECORD: OpaqueStructMetaType,
             }
             tags = sum(map(namespace.findall, tag_types.keys()), [])
             for tag in tags:
@@ -604,10 +606,7 @@ class GirParser(object):
                 c_type = tag.get(ATTR_C_TYPE)
                 MetaType = tag_types[tag.tag]
 
-                if MetaType == EnumMetaType or MetaType == BitfieldMetaType:
-                    if tag.get(ATTR_GLIB_TYPE_NAME) is not None:
-                        continue
-
+                # Fake type to represent a fundamental type - skip
                 if tag.get(ATTR_GLIB_FUNDAMENTAL) is not None:
                      continue
 
@@ -615,11 +614,35 @@ class GirParser(object):
                 if tag.get(ATTR_GLIB_IS_GTYPE_STRUCT_FOR) is not None:
                      continue
 
-                types.append(MetaType(
-                    gir_type=gir_type,
-                    c_type=c_type,
-                    prefix=prefix,
-                ))
+                if (MetaType == OpaqueStructMetaType):
+                    copy_func = None
+                    free_func = None
+
+                    # FIXME: we're hard-coding _copy() and _free() as the
+                    # copy/free functions. Is there a better way to do this?
+                    for method in tag.iter(TAG_METHOD):
+                        name = method.get(ATTR_NAME)
+
+                        if name == "copy":
+                            copy_func = method.get(ATTR_C_IDENTIFIER)
+                        elif name == "free":
+                            free_func = method.get(ATTR_C_IDENTIFIER)
+
+                    typ = MetaType(
+                        gir_type=gir_type,
+                        c_type=c_type,
+                        prefix=prefix,
+                        copy_func=copy_func,
+                        free_func=free_func,
+                    )
+                    types.append(typ)
+                else:
+                    typ = MetaType(
+                        gir_type=gir_type,
+                        c_type=c_type,
+                        prefix=prefix,
+                        )
+                    types.append(typ)
 
         return types
 

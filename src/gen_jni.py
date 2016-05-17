@@ -127,17 +127,6 @@ class WindowHandleType(ObjectMetaType(
         ])
 
 
-class GMainContextDummy(GirMetaType()):
-    gir_type = 'GLib.MainContext'
-    c_type = 'GMainContext*'
-
-    def __init__(self, *ignored):
-        self.c_name = 'NULL'
-
-    def transform_to_c(self):
-        return TypeTransform()
-
-
 def remove_ignored_elements(xml_root):
     def remove_elem(path):
         parent = xml_root.find(path + '/..')
