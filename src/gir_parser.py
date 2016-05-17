@@ -26,7 +26,7 @@ from __future__ import print_function
 import xml.etree.ElementTree as ET
 import itertools
 from standard_types import VoidType, IntType, LongPtrType, GParamSpecType, JObjectWrapperType
-from standard_types import ClassCallbackMetaType, GObjectMetaType, CallbackMetaType, OpaqueStructMetaType
+from standard_types import ClassCallbackMetaType, GObjectMetaType, CallbackMetaType, OpaqueStructMetaType, ObjectArrayMetaType
 from standard_types import EnumMetaType, BitfieldMetaType, GWeakRefType, JDestroyType
 from standard_types import standard_types
 from copy import copy
@@ -636,6 +636,7 @@ class GirParser(object):
                         free_func=free_func,
                     )
                     types.append(typ)
+                    types.append(ObjectArrayMetaType.from_object_type(typ))
                 else:
                     typ = MetaType(
                         gir_type=gir_type,
@@ -643,6 +644,10 @@ class GirParser(object):
                         prefix=prefix,
                         )
                     types.append(typ)
+
+                    # These are simple enough to make array meta types of
+                    if MetaType == EnumMetaType or MetaType == BitfieldMetaType:
+                        types.append(ObjectArrayMetaType.from_object_type(typ))
 
         return types
 

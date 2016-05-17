@@ -345,6 +345,42 @@ class PrimitiveArrayMetaType(GirMetaType):
         ])
 
 
+# FIXME: Need to properly set up a container with the objects inside
+class ObjectArrayMetaType(GirMetaType):
+    is_array = True
+    has_local_ref = True # FIXME?
+
+    def __init__(self, name, transfer_ownership, allow_none, c_array_type=None):
+        super(ObjectArrayMetaType, self).__init__(name, transfer_ownership, allow_none)
+        if c_array_type is not None:
+            self.c_array_type = c_array_type
+        self.c_type = c_array_type
+
+    def __new__(cls, gir_type, java_type, jni_type, c_type, java_signature):
+        new = super(ObjectArrayMetaType, cls).__new__(cls)
+        new.gir_type = gir_type
+        new.java_type = java_type + '[]'
+        new.java_signature = '[' + java_signature
+        new.c_array_type = c_type + '*'
+        new.jni_type = jni_type + '*'
+        return new
+
+    @staticmethod
+    def from_object_type(typ):
+        return ObjectArrayMetaType(
+            typ.gir_type,
+            typ.java_type,
+            typ.jni_type,
+            typ.c_type,
+            typ.java_signature,
+        )
+
+    def transform_to_c(self):
+        return TypeTransform([]) # FIXME: not implemented
+
+    def transform_to_jni(self):
+        return TypeTransform([]) # FIXME: not implemented
+
 class CharType   (PrimitiveMetaType('byte',    'jbyte',    'gchar',    'B', 'Byte')): pass
 class UcharType  (PrimitiveMetaType('byte',    'jbyte',    'guchar',   'B', 'Byte')): pass
 class Int8Type   (PrimitiveMetaType('byte',    'jbyte',    'gint8',    'B', 'Byte')): pass
@@ -887,11 +923,16 @@ primitive_types = [
 
 primitive_array_types = [PrimitiveArrayMetaType.from_primitive_type(t) for t in primitive_types]
 
-standard_types = primitive_types + primitive_array_types + [
-    VoidType,
+object_types =  [
     GValueType,
     StringMetaType('gchar*'),
     StringMetaType('const gchar*'),
+]
+
+object_array_types = [ObjectArrayMetaType.from_object_type(t) for t in object_types]
+
+standard_types = primitive_types + primitive_array_types + object_types + object_array_types + [
+    VoidType,
     GListType,
     GHashTableType,
     GParamSpecType,
